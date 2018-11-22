@@ -1,20 +1,20 @@
 package tuco.org.barcode.ui;
 
 
+import android.app.SearchManager;
+import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.TextureView;
 import android.view.View;
 import android.widget.ImageButton;
-import android.widget.Toast;
 
 import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
 
 import tuco.org.barcode.R;
 
-public class ReadActivity extends BarcodeCameraActivity {
+public class ScanActivity extends BarcodeCameraActivity {
 
-    private static final String TAG = "ReadActivity";
+    private static final String TAG = "ScanActivity";
 
     private TextureView textureView;
 
@@ -28,7 +28,7 @@ public class ReadActivity extends BarcodeCameraActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        setContentView(R.layout.activity_read);
+        setContentView(R.layout.activity_scan);
 
         textureView = (TextureView) findViewById(R.id.texture);
         takePictureButton = (ImageButton) findViewById(R.id.btn_scan);
@@ -41,7 +41,10 @@ public class ReadActivity extends BarcodeCameraActivity {
     }
 
     public void getBarcode(FirebaseVisionBarcode barcode){
-        Toast.makeText(this, barcode.getDisplayValue(), Toast.LENGTH_SHORT).show();
-        Log.i(TAG, barcode.getDisplayValue());
+        Intent intent = new Intent(this, BarcodeSearchActivity.class);
+        intent.setAction(Intent.ACTION_SEARCH);
+        intent.putExtra(SearchManager.QUERY, barcode.getRawValue());
+
+        startActivity(intent);
     }
 }
