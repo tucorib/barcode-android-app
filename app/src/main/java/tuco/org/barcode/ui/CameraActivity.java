@@ -30,39 +30,15 @@ import android.view.Surface;
 import android.view.TextureView;
 import android.widget.Toast;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
 import com.google.firebase.ml.vision.common.FirebaseVisionImageMetadata;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class CameraActivity extends Activity {
+public abstract class CameraActivity extends Activity{
 
     private static final String TAG = "CameraActivity";
-
-    /**
-     * Firebase barcode detector options.
-     */
-    private static final FirebaseVisionBarcodeDetectorOptions DETECTOR_OPTIONS;
-
-    private static final FirebaseVisionBarcodeDetector DETECTOR;
-
-    static {
-        DETECTOR_OPTIONS = new FirebaseVisionBarcodeDetectorOptions.Builder()
-                .setBarcodeFormats(
-                        FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
-                .build();
-        DETECTOR = FirebaseVision.getInstance()
-                .getVisionBarcodeDetector(DETECTOR_OPTIONS);
-    }
 
     private static final SparseIntArray ORIENTATIONS = new SparseIntArray();
     static {
@@ -119,12 +95,12 @@ public abstract class CameraActivity extends Activity {
     private String cameraId;
     protected CameraDevice cameraDevice;
     protected CameraCaptureSession cameraCaptureSessions;
-    protected CaptureRequest captureRequest;
+
     protected CaptureRequest.Builder captureRequestBuilder;
     private Size imageDimension;
     private ImageReader imageReader;
     private static final int REQUEST_CAMERA_PERMISSION = 200;
-    private boolean mFlashSupported;
+
     private Handler mBackgroundHandler;
     private HandlerThread mBackgroundThread;
 
@@ -146,6 +122,7 @@ public abstract class CameraActivity extends Activity {
         public void onSurfaceTextureUpdated(SurfaceTexture surface) {
         }
     };
+
     private final CameraDevice.StateCallback stateCallback = new CameraDevice.StateCallback() {
         @Override
         public void onOpened(CameraDevice camera) {
@@ -164,14 +141,17 @@ public abstract class CameraActivity extends Activity {
             cameraDevice = null;
         }
     };
+
     final CameraCaptureSession.CaptureCallback captureCallbackListener = new CameraCaptureSession.CaptureCallback() {
+
         @Override
-        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request, TotalCaptureResult result) {
+        public void onCaptureCompleted(CameraCaptureSession session, CaptureRequest request,
+                                       TotalCaptureResult result) {
             super.onCaptureCompleted(session, request, result);
-            Toast.makeText(CameraActivity.this, "onCaptureCompleted", Toast.LENGTH_SHORT).show();
             createCameraPreview();
         }
     };
+
     protected void startBackgroundThread() {
         mBackgroundThread = new HandlerThread("Camera Background");
         mBackgroundThread.start();
@@ -215,34 +195,16 @@ public abstract class CameraActivity extends Activity {
             captureBuilder.addTarget(reader.getSurface());
             captureBuilder.set(CaptureRequest.CONTROL_MODE, CameraMetadata.CONTROL_MODE_AUTO);
             // Orientation
-            //final int rotation = getWindowManager().getDefaultDisplay().getRotation();
             final int rotation = getRotationCompensation(cameraId, CameraActivity.this, CameraActivity.this);
             captureBuilder.set(CaptureRequest.JPEG_ORIENTATION, ORIENTATIONS.get(rotation));
 
             ImageReader.OnImageAvailableListener readerListener = new ImageReader.OnImageAvailableListener() {
+
                 @Override
                 public void onImageAvailable(ImageReader reader) {
                     Image image = reader.acquireLatestImage();
-
-                    FirebaseVisionImage fImage = FirebaseVisionImage.fromMediaImage(image, rotation);
-                    Task<List<FirebaseVisionBarcode>> result = DETECTOR.detectInImage(fImage)
-                            .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
-                                @Override
-                                public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                                    // Task completed successfully
-                                    for (FirebaseVisionBarcode barcode : barcodes) {
-                                        detectBarcode(barcode);
-                                    }
-                                }
-                            })
-                            .addOnFailureListener(new OnFailureListener() {
-                                @Override
-                                public void onFailure(@NonNull Exception e) {
-                                    // Task failed with an exception
-                                    Log.e(TAG, e.getMessage(), e);
-                                }
-                            });
-                if (image != null) {
+                    onPictureTaken(image, rotation);
+                    if (image != null) {
                         image.close();
                     }
                 }
@@ -297,7 +259,6 @@ public abstract class CameraActivity extends Activity {
     }
     private void openCamera() {
         CameraManager manager = (CameraManager) getSystemService(Context.CAMERA_SERVICE);
-        Log.e(TAG, "is camera open");
         try {
             cameraId = manager.getCameraIdList()[0];
             CameraCharacteristics characteristics = manager.getCameraCharacteristics(cameraId);
@@ -313,8 +274,8 @@ public abstract class CameraActivity extends Activity {
         } catch (CameraAccessException e) {
             e.printStackTrace();
         }
-        Log.e(TAG, "openCamera X");
     }
+
     protected void updatePreview() {
         if(null == cameraDevice) {
             Log.e(TAG, "updatePreview error, return");
@@ -365,5 +326,5 @@ public abstract class CameraActivity extends Activity {
 
     protected abstract TextureView getTextureView();
 
-    protected abstract void detectBarcode(FirebaseVisionBarcode barcode);
+    protected abstract void onPictureTaken(Image image, int rotation);
 }
