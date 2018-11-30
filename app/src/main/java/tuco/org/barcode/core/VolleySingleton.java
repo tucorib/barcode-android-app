@@ -10,6 +10,7 @@ import com.android.volley.toolbox.ImageLoader;
 import com.android.volley.toolbox.Volley;
 
 public class VolleySingleton {
+
     private static VolleySingleton mInstance;
     private RequestQueue mRequestQueue;
     private ImageLoader mImageLoader;

@@ -2,6 +2,7 @@ package tuco.org.barcode.ui;
 
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
+import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -11,11 +12,17 @@ import android.widget.TextView;
 
 import com.squareup.picasso.Picasso;
 
-import org.json.JSONException;
-import org.json.JSONObject;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import retrofit2.Call;
+import retrofit2.Callback;
+import retrofit2.Response;
+import saschpe.discogs.model.release.Artist;
+import saschpe.discogs.model.release.Release;
 import tuco.org.barcode.R;
-import tuco.org.barcode.core.TucothequeService;
+import tuco.org.barcode.core.DiscogsService;
 
 public class DiscogsFragment extends Fragment {
 
@@ -42,25 +49,30 @@ public class DiscogsFragment extends Fragment {
                              Bundle savedInstanceState) {
         final View view = inflater.inflate(R.layout.search_item_discogs, container, false);
 
-        try {
-            TucothequeService.loadDiscogsItem(DiscogsFragment.this.getContext(), id, new TucothequeService.DiscogsLoadCallback() {
-                @Override
-                public void itemLoaded(JSONObject data){
-                    try {
-                        Picasso.get().load(data.getString("thumb")).into((ImageView) view.findViewById(R.id.discogs_cover));
-                        ((TextView) view.findViewById(R.id.discogs_artist)).setText(data.getString("artists_sort"));
-                        ((TextView) view.findViewById(R.id.discogs_album)).setText(data.getString("title"));
-                        ((TextView) view.findViewById(R.id.discogs_year)).setText(data.getString("year"));
-                        ((TextView) view.findViewById(R.id.discogs_misc)).setText("Misc");
-                    } catch (JSONException e) {
-                        Log.e(TAG, e.getMessage(), e);
-                    }
-                }
-            });
-        } catch (JSONException e) {
-            Log.e(TAG, e.getMessage(), e);
-        }
+        DiscogsService.getInstance(DiscogsFragment.this.getContext()).searchForRelease(id, new Callback<Release>() {
+            @Override
+            public void onResponse(Call<Release> call, Response<Release> response) {
+                Picasso.get().load(response.body().getThumb()).into((ImageView) view.findViewById(R.id.discogs_cover));
+                ((TextView) view.findViewById(R.id.discogs_artist)).setText(getArtistLabel(response.body().getArtists()));
+                ((TextView) view.findViewById(R.id.discogs_album)).setText(response.body().getTitle());
+                ((TextView) view.findViewById(R.id.discogs_year)).setText(Integer.toString(response.body().getYear()));
+                ((TextView) view.findViewById(R.id.discogs_misc)).setText("Misc");
+            }
+
+            @Override
+            public void onFailure(Call<Release> call, Throwable t) {
+                Log.e(TAG, t.getMessage(), t);
+            }
+        });
 
         return view;
+    }
+
+    private String getArtistLabel(List<Artist> artists){
+        List<String> artistNames = new ArrayList<>();
+        for(Artist artist: artists){
+            artistNames.add(artist.getName());
+        }
+        return TextUtils.join(", ", artistNames);
     }
 }

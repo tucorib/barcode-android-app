@@ -19,15 +19,17 @@ import com.vlonjatg.progressactivity.ProgressLinearLayout;
 import org.json.JSONArray;
 import org.json.JSONException;
 
+import java.util.ArrayList;
+import java.util.List;
+
 import tuco.org.barcode.R;
 import tuco.org.barcode.core.TucothequeService;
+import tuco.org.barcode.core.searchitems.SearchItem;
 
 
 public class SearchActivity extends FragmentActivity implements TucothequeService.BarcodeSearchCallback {
 
     private static final String TAG = "SearchActivity";
-
-    private JSONArray data;
 
     private ProgressLinearLayout mProgressLayout;
 
@@ -37,39 +39,27 @@ public class SearchActivity extends FragmentActivity implements TucothequeServic
 
     private class SearchAdapter extends FragmentPagerAdapter{
 
-        private JSONArray data;
+        private final List<SearchItem> data;
 
         public SearchAdapter(FragmentManager manager){
             super(manager);
+            data = new ArrayList<>();
         }
 
-        public void setData(JSONArray data){
-            this.data = data;
+        public void addItem(SearchItem item){
+            this.data.add(item);
             this.notifyDataSetChanged();
         }
 
         @Override
         public int getCount() {
-            if(this.data == null)
-                return 0;
-            return this.data.length();
+            return this.data.size();
         }
 
         // Returns the fragment to display for a particular page.
         @Override
         public Fragment getItem(int position) {
-            try {
-                String source = this.data.getJSONObject(position).getString("source");
-                switch (source) {
-                    case "discogs":
-                        return DiscogsFragment.newInstance(this.data.getJSONObject(position).getInt("id"));
-                    default:
-                        return null;
-                }
-            } catch (JSONException e) {
-                Log.e(TAG, e.getMessage(), e);
-            }
-            return null;
+            return this.data.get(position).buildFragment();
         }
 
     }
@@ -107,8 +97,8 @@ public class SearchActivity extends FragmentActivity implements TucothequeServic
     }
 
     @Override
-    public void setResults(JSONArray results) {
-        this.mPagerAdapter.setData(results);
+    public void addResult(SearchItem item){
+        this.mPagerAdapter.addItem(item);
     }
 
 }

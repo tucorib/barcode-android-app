@@ -12,7 +12,12 @@ import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import tuco.org.barcode.ui.DiscogsFragment;
+import retrofit2.Call;
+import retrofit2.Callback;
+import saschpe.discogs.model.database.Result;
+import saschpe.discogs.model.database.Search;
+import tuco.org.barcode.core.searchitems.DiscogsSearchItem;
+import tuco.org.barcode.core.searchitems.SearchItem;
 
 public class TucothequeService {
 
@@ -28,73 +33,26 @@ public class TucothequeService {
 
         public void stopSearching();
 
-        public void setResults(JSONArray results);
-    }
-
-    public interface DiscogsLoadCallback {
-
-        public void itemLoaded(JSONObject data);
-
+        public void addResult(SearchItem item);
     }
 
     public static void searchForBarcode(final Context context, String barcodeRawValue, final BarcodeSearchCallback callback){
         callback.startSearching();
 
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-            Request.Method.GET,
-                getServiceUrl() + "/barcode/" + barcodeRawValue,
-            null,
-            new Response.Listener<JSONObject>() {
-
-                @Override
-                public void onResponse(JSONObject response) {
-                    try {
-                        JSONArray results = response.getJSONArray("results");
-                        callback.setResults(results);
-                    } catch (JSONException e) {
-                        Log.e(TAG, e.getMessage(), e);
-                    }
-                    finally {
-                        callback.stopSearching();
-                    }
+        DiscogsService.getInstance(context).searchForBarcode(barcodeRawValue, new Callback<Search>() {
+            @Override
+            public void onResponse(Call<Search> call, retrofit2.Response<Search> response) {
+                for(Result result : response.body().getResults()){
+                    callback.addResult(new DiscogsSearchItem(result.getId()));
                 }
-
-            },
-            new Response.ErrorListener() {
-
-                @Override
-                public void onErrorResponse(VolleyError error) {
-                    Log.e(TAG, error.getMessage(), error);
-                    callback.stopSearching();
-                }
+                callback.stopSearching();
             }
-        );
-        // Access the RequestQueue through your singleton class.
-        VolleySingleton.getInstance(context.getApplicationContext()).addToRequestQueue(jsonObjectRequest);
-    }
 
-    public static void loadDiscogsItem(Context context, final int id, final DiscogsLoadCallback callback) throws JSONException {
-        JsonObjectRequest jsonObjectRequest = new JsonObjectRequest(
-                Request.Method.GET,
-                getServiceUrl() + "/discogs/release/" + id,
-                null,
-                new Response.Listener<JSONObject>() {
-
-                    @Override
-                    public void onResponse(JSONObject response) {
-                        callback.itemLoaded(response);
-                    }
-
-                },
-                new Response.ErrorListener() {
-
-                    @Override
-                    public void onErrorResponse(VolleyError error) {
-                        Log.e(TAG, error.getMessage(), error);
-                    }
-                }
-        );
-        // Access the RequestQueue through your singleton class.
-        VolleySingleton.getInstance(context.getApplicationContext()).addToRequestQueue(jsonObjectRequest);
+            @Override
+            public void onFailure(Call<Search> call, Throwable t) {
+                Log.e(TAG, t.getMessage(), t);
+                callback.stopSearching();
+            }
+        });
     }
 }

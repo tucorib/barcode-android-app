@@ -1,5 +1,4 @@
 <resources>
-    <string name="app_name">barcode-android-app</string>
     <string name="discogs_artist">Artist</string>
     <string name="discogs_album">Album</string>
     <string name="discogs_year">Year</string>
