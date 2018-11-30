@@ -14,6 +14,7 @@ import android.util.Log;
 
 import com.tbuonomo.viewpagerdotsindicator.DotsIndicator;
 import com.tbuonomo.viewpagerdotsindicator.SpringDotsIndicator;
+import com.vlonjatg.progressactivity.ProgressLinearLayout;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -27,6 +28,8 @@ public class SearchActivity extends FragmentActivity implements TucothequeServic
     private static final String TAG = "SearchActivity";
 
     private JSONArray data;
+
+    private ProgressLinearLayout mProgressLayout;
 
     private ViewPager mPager;
 
@@ -76,6 +79,7 @@ public class SearchActivity extends FragmentActivity implements TucothequeServic
         super.onCreate(savedInstanceState);
         setContentView(R.layout.search);
 
+        mProgressLayout = (ProgressLinearLayout) findViewById(R.id.progress);
         mPager = (ViewPager) findViewById(R.id.pager);
         mPagerAdapter = new SearchAdapter(getSupportFragmentManager());
         mPager.setAdapter(mPagerAdapter);
@@ -94,12 +98,12 @@ public class SearchActivity extends FragmentActivity implements TucothequeServic
 
     @Override
     public void startSearching() {
-        // TODO
+        mProgressLayout.showLoading();
     }
 
     @Override
     public void stopSearching() {
-        // TODO
+        mProgressLayout.showContent();
     }
 
     @Override
