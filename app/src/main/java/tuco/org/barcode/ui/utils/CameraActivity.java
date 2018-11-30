@@ -1,4 +1,4 @@
-package tuco.org.barcode.ui;
+package tuco.org.barcode.ui.utils;
 
 import android.Manifest;
 import android.app.Activity;
@@ -20,9 +20,8 @@ import android.media.ImageReader;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
-import android.support.annotation.RequiresApi;
 import android.support.v4.app.ActivityCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.util.Size;
 import android.util.SparseIntArray;
@@ -36,7 +35,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-public abstract class CameraActivity extends Activity{
+public abstract class CameraActivity extends AppCompatActivity {
 
     private static final String TAG = "CameraActivity";
 
@@ -52,7 +51,6 @@ public abstract class CameraActivity extends Activity{
      * Get the angle by which an image must be rotated given the device's current
      * orientation.
      */
-    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
     private int getRotationCompensation(String cameraId, Activity activity, Context context)
             throws CameraAccessException {
         // Get the device's current rotation relative to its "native" orientation.
@@ -239,7 +237,7 @@ public abstract class CameraActivity extends Activity{
             captureRequestBuilder.addTarget(surface);
             cameraDevice.createCaptureSession(Arrays.asList(surface), new CameraCaptureSession.StateCallback(){
                 @Override
-                public void onConfigured(@NonNull CameraCaptureSession cameraCaptureSession) {
+                public void onConfigured(CameraCaptureSession cameraCaptureSession) {
                     //The camera is already closed
                     if (null == cameraDevice) {
                         return;
@@ -249,7 +247,7 @@ public abstract class CameraActivity extends Activity{
                     updatePreview();
                 }
                 @Override
-                public void onConfigureFailed(@NonNull CameraCaptureSession cameraCaptureSession) {
+                public void onConfigureFailed(CameraCaptureSession cameraCaptureSession) {
                     Toast.makeText(CameraActivity.this, "Configuration change", Toast.LENGTH_SHORT).show();
                 }
             }, null);
@@ -298,7 +296,7 @@ public abstract class CameraActivity extends Activity{
         }
     }
     @Override
-    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
         if (requestCode == REQUEST_CAMERA_PERMISSION) {
             if (grantResults[0] == PackageManager.PERMISSION_DENIED) {
                 // close the app

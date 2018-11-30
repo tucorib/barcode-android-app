@@ -1,7 +1,6 @@
-package tuco.org.barcode.ui;
+package tuco.org.barcode.ui.utils;
 
 import android.media.Image;
-import android.support.annotation.NonNull;
 import android.util.Log;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -53,7 +52,7 @@ public abstract class BarcodeCameraActivity extends CameraActivity {
                 .addOnFailureListener(new OnFailureListener() {
 
                     @Override
-                    public void onFailure(@NonNull Exception e) {
+                    public void onFailure(Exception e) {
                         // Task failed with an exception
                         Log.e(TAG, e.getMessage(), e);
                     }
