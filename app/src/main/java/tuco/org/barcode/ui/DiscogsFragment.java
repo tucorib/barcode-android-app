@@ -40,7 +40,7 @@ public class DiscogsFragment extends Fragment {
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
-        final View view = inflater.inflate(R.layout.discogs_item, container, false);
+        final View view = inflater.inflate(R.layout.search_item_discogs, container, false);
 
         try {
             TucothequeService.loadDiscogsItem(DiscogsFragment.this.getContext(), id, new TucothequeService.DiscogsLoadCallback() {

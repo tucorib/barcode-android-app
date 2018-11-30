@@ -1,64 +1,137 @@
 package tuco.org.barcode.ui.utils;
 
-import android.media.Image;
+import android.content.Context;
+import android.content.pm.PackageManager;
+import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
+import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 
-import com.google.android.gms.tasks.OnFailureListener;
-import com.google.android.gms.tasks.OnSuccessListener;
-import com.google.android.gms.tasks.Task;
-import com.google.firebase.ml.vision.FirebaseVision;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetector;
-import com.google.firebase.ml.vision.barcode.FirebaseVisionBarcodeDetectorOptions;
-import com.google.firebase.ml.vision.common.FirebaseVisionImage;
-
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 
+import tuco.org.barcode.R;
+import tuco.org.barcode.libs.mlkit.common.CameraSource;
+import tuco.org.barcode.libs.mlkit.common.CameraSourcePreview;
+import tuco.org.barcode.libs.mlkit.common.GraphicOverlay;
+import tuco.org.barcode.libs.mlkit.java.barcodescanning.BarcodeScanningProcessor;
 
-public abstract class BarcodeCameraActivity extends CameraActivity {
+
+public abstract class BarcodeCameraActivity extends AppCompatActivity implements BarcodeScanningProcessor.BarcodeScanningCallback {
 
     private static final String TAG = "BarcodeCameraActivity";
 
-    /**
-     * Firebase barcode detector options.
-     */
-    private static final FirebaseVisionBarcodeDetectorOptions DETECTOR_OPTIONS;
+    private CameraSource cameraSource = null;
+    private CameraSourcePreview preview;
+    private GraphicOverlay graphicOverlay;
 
-    private static final FirebaseVisionBarcodeDetector DETECTOR;
+    private static final int PERMISSION_REQUESTS = 1;
 
-    static {
-        DETECTOR_OPTIONS = new FirebaseVisionBarcodeDetectorOptions.Builder()
-                .setBarcodeFormats(
-                        com.google.firebase.ml.vision.barcode.FirebaseVisionBarcode.FORMAT_ALL_FORMATS)
-                .build();
-        DETECTOR = FirebaseVision.getInstance()
-                .getVisionBarcodeDetector(DETECTOR_OPTIONS);
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.scan);
+
+        preview = findViewById(R.id.firePreview);
+        graphicOverlay = findViewById(R.id.fireFaceOverlay);
+
+        if (allPermissionsGranted()) {
+            createCameraSource();
+            startCameraSource();
+        } else {
+            getRuntimePermissions();
+        }
     }
 
-    protected void onPictureTaken(Image image, int rotation){
-        FirebaseVisionImage fImage = FirebaseVisionImage.fromMediaImage(image, rotation);
-        Task<List<FirebaseVisionBarcode>> result = DETECTOR.detectInImage(fImage)
-                .addOnSuccessListener(new OnSuccessListener<List<FirebaseVisionBarcode>>() {
+    private void getRuntimePermissions() {
+        List<String> allNeededPermissions = new ArrayList<>();
+        for (String permission : getRequiredPermissions()) {
+            if (!isPermissionGranted(this, permission)) {
+                allNeededPermissions.add(permission);
+            }
+        }
 
-                    @Override
-                    public void onSuccess(List<FirebaseVisionBarcode> barcodes) {
-                        // Task completed successfully
-                        for (FirebaseVisionBarcode barcode : barcodes) {
-                            getBarcode(barcode);
-                        }
-                    }
-
-                })
-                .addOnFailureListener(new OnFailureListener() {
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        // Task failed with an exception
-                        Log.e(TAG, e.getMessage(), e);
-                    }
-
-                });
+        if (!allNeededPermissions.isEmpty()) {
+            ActivityCompat.requestPermissions(
+                    this, allNeededPermissions.toArray(new String[0]), PERMISSION_REQUESTS);
+        }
     }
 
-    protected abstract void getBarcode(FirebaseVisionBarcode barcode);
+    private void createCameraSource() {
+        // If there's no existing cameraSource, create one.
+        if (cameraSource == null) {
+            cameraSource = new CameraSource(this, graphicOverlay);
+        }
+        cameraSource.setMachineLearningFrameProcessor(new BarcodeScanningProcessor(this));
+    }
+
+    private void startCameraSource() {
+        if (cameraSource != null) {
+            try {
+                if (preview == null) {
+                    Log.d(TAG, "resume: Preview is null");
+                }
+                if (graphicOverlay == null) {
+                    Log.d(TAG, "resume: graphOverlay is null");
+                }
+                preview.start(cameraSource, graphicOverlay);
+            } catch (IOException e) {
+                cameraSource.release();
+                cameraSource = null;
+            }
+        }
+    }
+
+    @Override
+    public void onResume() {
+        super.onResume();
+        startCameraSource();
+    }
+
+    /** Stops the camera. */
+    @Override
+    protected void onPause() {
+        super.onPause();
+        preview.stop();
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        if (cameraSource != null) {
+            cameraSource.release();
+        }
+    }
+    private boolean allPermissionsGranted() {
+        for (String permission : getRequiredPermissions()) {
+            if (!isPermissionGranted(this, permission)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private String[] getRequiredPermissions() {
+        return new String[]{android.Manifest.permission.CAMERA, android.Manifest.permission.INTERNET};
+    }
+
+    @Override
+    public void onRequestPermissionsResult(
+            int requestCode, String[] permissions, int[] grantResults) {
+        if (allPermissionsGranted()) {
+            createCameraSource();
+            startCameraSource();
+        }
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+    }
+
+    private static boolean isPermissionGranted(Context context, String permission) {
+        if (ContextCompat.checkSelfPermission(context, permission)
+                == PackageManager.PERMISSION_GRANTED) {
+            return true;
+        }
+        return false;
+    }
 }
